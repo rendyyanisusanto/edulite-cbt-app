@@ -4,6 +4,7 @@ import { Calendar, Clock, Lock, UserCheck, RefreshCw, BookOpen, AlertCircle, Key
 import BaseModal from '@/components/common/BaseModal.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
+import BaseSelectSearch from '@/components/common/BaseSelectSearch.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -28,6 +29,13 @@ const formData = ref({
 
 const readyAssignments = computed(() => {
   return props.assignments.filter(a => a.status === 'READY')
+})
+
+const assignmentOptions = computed(() => {
+  return readyAssignments.value.map(a => ({
+    label: `${a.subjectName} - Kelas ${a.className} (${a.teacherName})`,
+    value: a.id
+  }))
 })
 
 const generateToken = () => {
@@ -126,21 +134,12 @@ const handleSubmit = () => {
         
         <div class="bg-slate-50 p-5 rounded-xl border border-slate-100 transition-all focus-within:ring-2 focus-within:ring-primary-blue/20 focus-within:border-primary-blue/30">
           <label class="block text-sm font-medium text-slate-700 mb-2">Pilih Penugasan Guru</label>
-          <div class="relative">
-            <select 
-              v-model="formData.examAssignmentId"
-              class="block w-full appearance-none rounded-xl border-slate-200 bg-white py-3 px-4 pr-10 text-slate-700 shadow-sm transition-colors focus:border-primary-blue focus:outline-none focus:ring-2 focus:ring-primary-blue/20 sm:text-sm"
-              :disabled="readyAssignments.length === 0"
-            >
-              <option value="">-- Pilih Penugasan (Hanya status READY) --</option>
-              <option v-for="a in readyAssignments" :key="a.id" :value="a.id">
-                {{ a.subjectName }} - Kelas {{ a.className }} ({{ a.teacherName }})
-              </option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-          </div>
+          <BaseSelectSearch 
+            v-model="formData.examAssignmentId"
+            :options="assignmentOptions"
+            :disabled="readyAssignments.length === 0"
+            placeholder="-- Pilih Penugasan (Hanya status READY) --"
+          />
           <p v-if="readyAssignments.length === 0" class="mt-3 text-xs text-red-500 flex items-center">
             <AlertCircle class="w-3.5 h-3.5 mr-1" />
             Belum ada penugasan dengan status READY (soal mencukupi).

@@ -142,6 +142,10 @@ onMounted(async () => {
               </span>
             </div>
             <div class="text-lg text-slate-800 leading-relaxed" v-html="currentQuestion.questionText"></div>
+            
+            <div v-if="currentQuestion.mediaUrl" class="mt-4 mb-6">
+              <img :src="currentQuestion.mediaUrl" alt="Gambar Soal" class="max-h-64 rounded-lg border border-slate-200 shadow-sm object-contain" />
+            </div>
           </div>
 
           <div class="space-y-3">

@@ -9,7 +9,7 @@ import { useExamStore } from '@/stores/exam'
 
 import BaseModal from '@/components/common/BaseModal.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
-import BaseSelect from '@/components/common/BaseSelect.vue'
+import BaseSelectSearch from '@/components/common/BaseSelectSearch.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 
 const props = defineProps({
@@ -92,26 +92,26 @@ const onSubmit = handleSubmit((values) => {
     @close="emit('close')"
   >
     <form @submit="onSubmit" class="space-y-4 py-2">
-      <BaseSelect 
+      <BaseSelectSearch 
         v-if="!props.examId && !props.assignment"
         name="examId" 
         label="Ujian"
         :options="examOptions"
       />
       
-      <BaseSelect 
+      <BaseSelectSearch 
         name="teacherId" 
         label="Guru Pengampu"
         :options="teacherOptions"
       />
       
-      <BaseSelect 
+      <BaseSelectSearch 
         name="subjectId" 
         label="Mata Pelajaran"
         :options="subjectOptions"
       />
       
-      <BaseSelect 
+      <BaseSelectSearch 
         name="classId" 
         label="Kelas"
         :options="classOptions"

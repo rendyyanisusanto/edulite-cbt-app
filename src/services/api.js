@@ -30,6 +30,10 @@ api.interceptors.response.use(
       localStorage.removeItem('cbt_user')
       window.location.href = '/login'
     }
+    
+    if (error.response?.data?.message) {
+      error.message = error.response.data.message
+    }
 
     return Promise.reject(error)
   }

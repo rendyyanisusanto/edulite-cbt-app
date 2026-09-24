@@ -461,6 +461,9 @@ onMounted(async () => {
                 </div>
                 
                 <div class="text-slate-800 font-medium prose prose-sm max-w-none mb-3" v-html="question.questionText"></div>
+                <div v-if="question.mediaUrl" class="mb-3">
+                  <img :src="question.mediaUrl" class="max-h-40 rounded border border-slate-200" alt="Gambar Soal" />
+                </div>
                 
                 <!-- Compact Info -->
                 <div v-if="!isExpanded(question.id)" class="flex items-center text-xs text-slate-500 space-x-3">
