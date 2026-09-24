@@ -41,6 +41,7 @@ const schema = toTypedSchema(
     correctAnswerPG: z.string().optional(),
     correctAnswerEssay: z.string().optional(),
     weight: z.number().min(1, 'Bobot minimal 1')
+  }).superRefine((data, ctx) => {
     if (data.type === 'pilihan_ganda') {
       if (!data.correctAnswerPG) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Kunci jawaban wajib dipilih', path: ['correctAnswerPG'] })
     }
