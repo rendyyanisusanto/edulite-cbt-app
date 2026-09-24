@@ -170,7 +170,12 @@ onMounted(async () => {
                   </div>
                 </div>
                 <span class="font-bold mr-3 text-slate-700">{{ opt.key }}.</span>
-                <span class="flex-1 text-slate-700">{{ opt.text }}</span>
+                <div class="flex-1 text-slate-700 min-w-0 pr-24">
+                  <div class="prose max-w-none" v-html="opt.text"></div>
+                  <div v-if="opt.mediaUrl" class="mt-3">
+                    <img :src="opt.mediaUrl" alt="Gambar Pilihan" class="max-h-32 rounded-lg border border-slate-200 shadow-sm object-contain" />
+                  </div>
+                </div>
                 
                 <div v-if="showKey && opt.isCorrect" class="absolute right-4 top-1/2 -translate-y-1/2">
                   <span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">Jawaban Benar</span>

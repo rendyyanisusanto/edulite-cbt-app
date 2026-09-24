@@ -485,11 +485,18 @@ onMounted(async () => {
                     <div 
                       v-for="opt in question.options" 
                       :key="opt.key"
-                      class="flex items-start p-2.5 rounded-lg text-sm border"
+                      class="flex flex-col sm:flex-row items-start p-2.5 rounded-lg text-sm border"
                       :class="opt.isCorrect ? 'bg-green-50 border-green-200 text-green-800' : 'bg-white border-slate-100 text-slate-600'"
                     >
-                      <span class="font-bold mr-3" :class="opt.isCorrect ? 'text-green-700' : 'text-slate-400'">{{ opt.key }}.</span>
-                      <span class="flex-1">{{ opt.text }}</span>
+                      <div class="flex items-start w-full">
+                        <span class="font-bold mr-3 mt-0.5" :class="opt.isCorrect ? 'text-green-700' : 'text-slate-400'">{{ opt.key }}.</span>
+                        <div class="flex-1 min-w-0">
+                          <div class="prose prose-sm max-w-none" v-html="opt.text"></div>
+                          <div v-if="opt.mediaUrl" class="mt-2">
+                            <img :src="opt.mediaUrl" class="max-h-24 rounded border border-slate-200" alt="Gambar Pilihan" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </template>
                   

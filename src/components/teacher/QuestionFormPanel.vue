@@ -25,25 +25,23 @@ const isDirty = ref(false)
 const imageBase64 = ref('')
 const imageError = ref('')
 
+const optionImages = ref({ A: '', B: '', C: '', D: '', E: '' })
+const optionImageErrors = ref({ A: '', B: '', C: '', D: '', E: '' })
+
 // Dynamic schema based on question type
 const schema = toTypedSchema(
   z.object({
     type: z.enum(['pilihan_ganda', 'esai']),
     questionText: z.string().min(1, 'Pertanyaan wajib diisi').refine(val => val !== '<p><br></p>', 'Pertanyaan wajib diisi'),
-    optionA: z.string().optional(),
-    optionB: z.string().optional(),
-    optionC: z.string().optional(),
-    optionD: z.string().optional(),
+    optionA: z.string().min(1, 'Pilihan A wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan A wajib diisi'),
+    optionB: z.string().min(1, 'Pilihan B wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan B wajib diisi'),
+    optionC: z.string().min(1, 'Pilihan C wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan C wajib diisi'),
+    optionD: z.string().min(1, 'Pilihan D wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan D wajib diisi'),
     optionE: z.string().optional(),
     correctAnswerPG: z.string().optional(),
     correctAnswerEssay: z.string().optional(),
     weight: z.number().min(1, 'Bobot minimal 1')
-  }).superRefine((data, ctx) => {
     if (data.type === 'pilihan_ganda') {
-      if (!data.optionA) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan A wajib diisi', path: ['optionA'] })
-      if (!data.optionB) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan B wajib diisi', path: ['optionB'] })
-      if (!data.optionC) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan C wajib diisi', path: ['optionC'] })
-      if (!data.optionD) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan D wajib diisi', path: ['optionD'] })
       if (!data.correctAnswerPG) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Kunci jawaban wajib dipilih', path: ['correctAnswerPG'] })
     }
   })
@@ -84,11 +82,20 @@ watch(() => props.isOpen, (newVal) => {
         weight: props.question.score || 1
       })
       imageBase64.value = props.question.mediaUrl || ''
+      optionImages.value = {
+        A: opts.find(o => o.key === 'A')?.mediaUrl || '',
+        B: opts.find(o => o.key === 'B')?.mediaUrl || '',
+        C: opts.find(o => o.key === 'C')?.mediaUrl || '',
+        D: opts.find(o => o.key === 'D')?.mediaUrl || '',
+        E: opts.find(o => o.key === 'E')?.mediaUrl || ''
+      }
     } else {
       resetForm()
       imageBase64.value = ''
+      optionImages.value = { A: '', B: '', C: '', D: '', E: '' }
     }
     imageError.value = ''
+    optionImageErrors.value = { A: '', B: '', C: '', D: '', E: '' }
     // Small delay to allow the editor to settle before marking dirty checks
     setTimeout(() => {
       isDirty.value = false
@@ -96,16 +103,18 @@ watch(() => props.isOpen, (newVal) => {
   }
 })
 
-const handleImageUpload = (event) => {
+const handleImageUpload = (event, key = null) => {
   const file = event.target.files[0]
   if (!file) return
   
   if (file.size > 2 * 1024 * 1024) {
-    imageError.value = 'Ukuran gambar maksimal 2MB'
+    if (key) optionImageErrors.value[key] = 'Ukuran gambar maksimal 2MB'
+    else imageError.value = 'Ukuran gambar maksimal 2MB'
     return
   }
   
-  imageError.value = ''
+  if (key) optionImageErrors.value[key] = ''
+  else imageError.value = ''
   
   const reader = new FileReader()
   reader.readAsDataURL(file)
@@ -134,14 +143,25 @@ const handleImageUpload = (event) => {
       canvas.height = height
       const ctx = canvas.getContext('2d')
       ctx.drawImage(img, 0, 0, width, height)
-      imageBase64.value = canvas.toDataURL('image/jpeg', 0.7)
+      
+      const compressed = canvas.toDataURL('image/jpeg', 0.7)
+      if (key) {
+        optionImages.value[key] = compressed
+      } else {
+        imageBase64.value = compressed
+      }
     }
   }
 }
 
-const removeImage = () => {
-  imageBase64.value = ''
-  imageError.value = ''
+const removeImage = (key = null) => {
+  if (key) {
+    optionImages.value[key] = ''
+    optionImageErrors.value[key] = ''
+  } else {
+    imageBase64.value = ''
+    imageError.value = ''
+  }
 }
 
 // Track dirtiness manually to warn user on close
@@ -159,7 +179,7 @@ const handleClose = () => {
   }
 }
 
-const buildSubmitPayload = (formValues, mediaUrl) => {
+const buildSubmitPayload = (formValues, mediaUrl, uploadedOptImages) => {
   const payload = {
     questionType: formValues.type === 'esai' ? 'ESSAY' : 'SINGLE_CHOICE',
     questionText: formValues.questionText,
@@ -169,12 +189,12 @@ const buildSubmitPayload = (formValues, mediaUrl) => {
 
   if (formValues.type === 'pilihan_ganda') {
     payload.options = [
-      { key: 'A', text: formValues.optionA, isCorrect: formValues.correctAnswerPG === 'A' },
-      { key: 'B', text: formValues.optionB, isCorrect: formValues.correctAnswerPG === 'B' },
-      { key: 'C', text: formValues.optionC, isCorrect: formValues.correctAnswerPG === 'C' },
-      { key: 'D', text: formValues.optionD, isCorrect: formValues.correctAnswerPG === 'D' },
-      { key: 'E', text: formValues.optionE || '', isCorrect: formValues.correctAnswerPG === 'E' }
-    ].filter(o => o.text !== '')
+      { key: 'A', text: formValues.optionA, mediaUrl: uploadedOptImages.A || null, isCorrect: formValues.correctAnswerPG === 'A' },
+      { key: 'B', text: formValues.optionB, mediaUrl: uploadedOptImages.B || null, isCorrect: formValues.correctAnswerPG === 'B' },
+      { key: 'C', text: formValues.optionC, mediaUrl: uploadedOptImages.C || null, isCorrect: formValues.correctAnswerPG === 'C' },
+      { key: 'D', text: formValues.optionD, mediaUrl: uploadedOptImages.D || null, isCorrect: formValues.correctAnswerPG === 'D' },
+      { key: 'E', text: formValues.optionE || '', mediaUrl: uploadedOptImages.E || null, isCorrect: formValues.correctAnswerPG === 'E' }
+    ].filter(o => o.text && o.text !== '<p><br></p>')
   } else {
     payload.answerKey = { modelAnswer: formValues.correctAnswerEssay }
   }
@@ -182,24 +202,35 @@ const buildSubmitPayload = (formValues, mediaUrl) => {
   return payload
 }
 
-const uploadImageIfNew = async () => {
-  if (imageBase64.value && imageBase64.value.startsWith('data:image/')) {
+const uploadImageIfNew = async (base64String, errorRefSetter) => {
+  if (base64String && base64String.startsWith('data:image/')) {
     try {
-      const { data } = await api.post('/upload/image', { image: imageBase64.value })
+      const { data } = await api.post('/upload/image', { image: base64String })
       return data.data.url
     } catch (e) {
       console.error(e)
-      imageError.value = e.message || 'Gagal menyimpan gambar ke server'
+      errorRefSetter(e.message || 'Gagal menyimpan gambar ke server')
       throw e
     }
   }
-  return imageBase64.value
+  return base64String
+}
+
+const uploadAllImages = async () => {
+  const mainImage = await uploadImageIfNew(imageBase64.value, (msg) => { imageError.value = msg })
+  
+  const optImages = { A: '', B: '', C: '', D: '', E: '' }
+  for (const key of ['A', 'B', 'C', 'D', 'E']) {
+    optImages[key] = await uploadImageIfNew(optionImages.value[key], (msg) => { optionImageErrors.value[key] = msg })
+  }
+  
+  return { mainImage, optImages }
 }
 
 const onSubmit = handleSubmit(async (formValues) => {
   try {
-    const mediaUrl = await uploadImageIfNew()
-    emit('submit', buildSubmitPayload(formValues, mediaUrl))
+    const { mainImage, optImages } = await uploadAllImages()
+    emit('submit', buildSubmitPayload(formValues, mainImage, optImages))
   } catch (e) {
     // Error handled in uploadImageIfNew
   }
@@ -207,8 +238,8 @@ const onSubmit = handleSubmit(async (formValues) => {
 
 const onSubmitAndAdd = handleSubmit(async (formValues) => {
   try {
-    const mediaUrl = await uploadImageIfNew()
-    emit('submit-and-add', buildSubmitPayload(formValues, mediaUrl))
+    const { mainImage, optImages } = await uploadAllImages()
+    emit('submit-and-add', buildSubmitPayload(formValues, mainImage, optImages))
   } catch (e) {
     // Error handled in uploadImageIfNew
   }
@@ -260,7 +291,7 @@ const onSubmitAndAdd = handleSubmit(async (formValues) => {
           <label class="block mb-1.5 text-sm font-medium text-slate-700">Gambar Soal (Opsional)</label>
           <div v-if="imageBase64" class="relative inline-block mt-2">
             <img :src="imageBase64" class="max-h-48 rounded-lg border border-slate-200" />
-            <button type="button" @click="removeImage" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+            <button type="button" @click="removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
               <XIcon class="w-4 h-4" />
             </button>
           </div>
@@ -271,35 +302,39 @@ const onSubmitAndAdd = handleSubmit(async (formValues) => {
                 <p class="mb-1 text-sm text-slate-500"><span class="font-semibold">Klik untuk upload</span> gambar soal</p>
                 <p class="text-xs text-slate-500">Maks. ukuran 2MB (JPEG, PNG)</p>
               </div>
-              <input type="file" class="hidden" accept="image/jpeg, image/png, image/jpg" @change="handleImageUpload" />
+              <input type="file" class="hidden" accept="image/jpeg, image/png, image/jpg" @change="e => handleImageUpload(e)" />
             </label>
           </div>
           <p v-if="imageError" class="mt-1 text-sm text-red-500">{{ imageError }}</p>
         </div>
 
         <!-- Mode Pilihan Ganda -->
-        <div v-if="values.type === 'pilihan_ganda'" class="space-y-4 pt-4 border-t border-slate-100">
-          <h3 class="text-sm font-semibold text-slate-700">Pilihan Jawaban</h3>
+        <div v-if="values.type === 'pilihan_ganda'" class="space-y-6 pt-4 border-t border-slate-100">
+          <h3 class="text-sm font-semibold text-slate-700 mb-2">Pilihan Jawaban</h3>
           
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-10 flex items-center justify-center font-bold text-slate-500 shrink-0">A</div>
-            <div class="flex-1"><BaseInput name="optionA" placeholder="Masukkan Pilihan A" /></div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-10 flex items-center justify-center font-bold text-slate-500 shrink-0">B</div>
-            <div class="flex-1"><BaseInput name="optionB" placeholder="Masukkan Pilihan B" /></div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-10 flex items-center justify-center font-bold text-slate-500 shrink-0">C</div>
-            <div class="flex-1"><BaseInput name="optionC" placeholder="Masukkan Pilihan C" /></div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-10 flex items-center justify-center font-bold text-slate-500 shrink-0">D</div>
-            <div class="flex-1"><BaseInput name="optionD" placeholder="Masukkan Pilihan D" /></div>
-          </div>
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-10 flex items-center justify-center font-bold text-slate-400 shrink-0">E</div>
-            <div class="flex-1"><BaseInput name="optionE" placeholder="Masukkan Pilihan E (Opsional)" /></div>
+          <div v-for="key in ['A', 'B', 'C', 'D', 'E']" :key="key" class="flex items-start gap-3">
+            <div class="w-8 h-10 flex items-center justify-center font-bold shrink-0 mt-1" :class="key === 'E' ? 'text-slate-400' : 'text-slate-500'">{{ key }}</div>
+            <div class="flex-1 space-y-3 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
+              <BaseWysiwyg :name="'option' + key" :placeholder="key === 'E' ? 'Masukkan Pilihan E (Opsional)' : `Masukkan Pilihan ${key}`" minHeight="min-h-[80px]" hideLabel />
+              
+              <!-- Option Image -->
+              <div>
+                <div v-if="optionImages[key]" class="relative inline-block mt-2">
+                  <img :src="optionImages[key]" class="max-h-32 rounded-lg border border-slate-200" />
+                  <button type="button" @click="removeImage(key)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600">
+                    <XIcon class="w-3 h-3" />
+                  </button>
+                </div>
+                <div v-else class="mt-1">
+                  <label class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50">
+                    <ImageIcon class="w-4 h-4" />
+                    Tambah Gambar
+                    <input type="file" class="hidden" accept="image/jpeg, image/png, image/jpg" @change="e => handleImageUpload(e, key)" />
+                  </label>
+                </div>
+                <p v-if="optionImageErrors[key]" class="mt-1 text-xs text-red-500">{{ optionImageErrors[key] }}</p>
+              </div>
+            </div>
           </div>
 
           <div class="w-1/2 pt-2">
