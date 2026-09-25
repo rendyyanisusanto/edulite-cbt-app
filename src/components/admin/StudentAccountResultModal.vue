@@ -53,30 +53,37 @@ const printCredentials = () => {
       <head>
         <title>Cetak Akun CBT</title>
         <style>
-          body { font-family: sans-serif; padding: 20px; }
-          .card { border: 1px dashed #ccc; padding: 20px; margin-bottom: 20px; width: 300px; display: inline-block; margin-right: 20px; page-break-inside: avoid; }
-          .header { font-weight: bold; font-size: 16px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-          .row { margin-bottom: 10px; font-size: 14px; }
-          .label { color: #666; font-size: 12px; }
-          .val { font-weight: bold; font-size: 16px; }
+          body { font-family: sans-serif; padding: 10px; margin: 0; }
+          .container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+          .card { border: 1px solid #333; border-radius: 6px; padding: 0; page-break-inside: avoid; break-inside: avoid; overflow: hidden; }
+          .header { font-weight: bold; font-size: 11px; margin-bottom: 6px; border-bottom: 1px solid #333; padding: 6px; text-align: center; background-color: #f1f5f9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .content { padding: 0 6px 6px 6px; }
+          .row { display: flex; margin-bottom: 4px; font-size: 10px; }
+          .label { width: 55px; color: #333; }
+          .colon { width: 10px; }
+          .val { font-weight: bold; flex: 1; word-break: break-word; }
           @media print {
             button { display: none; }
           }
         </style>
       </head>
       <body>
+        <div class="container">
   `
   props.results.generated.forEach(item => {
     html += `
       <div class="card">
-        <div class="header">CBT EDULITE</div>
-        <div class="row"><div class="label">Nama</div><div class="val" style="font-size:14px;">${item.name}</div></div>
-        <div class="row"><div class="label">Username</div><div class="val">${item.username}</div></div>
-        <div class="row"><div class="label">Password</div><div class="val">${item.password}</div></div>
+        <div class="header">KARTU PESERTA CBT</div>
+        <div class="content">
+          <div class="row"><div class="label">Nama</div><div class="colon">:</div><div class="val">${item.name}</div></div>
+          <div class="row"><div class="label">Username</div><div class="colon">:</div><div class="val">${item.username}</div></div>
+          <div class="row"><div class="label">Password</div><div class="colon">:</div><div class="val">${item.password}</div></div>
+        </div>
       </div>
     `
   })
   html += `
+        </div>
         <script>
           window.onload = function() { window.print(); }
         <\/script>

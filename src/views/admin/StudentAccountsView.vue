@@ -6,7 +6,7 @@ import { useUiStore } from '@/stores/ui'
 import { storeToRefs } from 'pinia'
 import { 
   Users, KeyRound, UserRoundCog, Search, CheckCircle, 
-  XCircle, Filter, MoreVertical, ShieldAlert
+  XCircle, Filter, MoreVertical, ShieldAlert, Printer
 } from 'lucide-vue-next'
 
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -18,6 +18,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 
 import GenerateStudentAccountModal from '@/components/admin/GenerateStudentAccountModal.vue'
 import StudentAccountResultModal from '@/components/admin/StudentAccountResultModal.vue'
+import PrintCards from '@/components/admin/PrintCards.vue'
 
 const studentStore = useStudentAccountStore()
 const masterStore = useMasterStore()
@@ -45,9 +46,17 @@ const isResetResult = ref(false)
 const selectedStudent = ref(null)
 const selectedStudentIds = ref([]) // For checkbox selection
 
+// Print state
+const isPrinting = ref(false)
+const printStudents = ref([])
+
 onMounted(async () => {
   await masterStore.fetchAll()
   await fetchStudents()
+  
+  window.addEventListener('afterprint', () => {
+    isPrinting.value = false
+  })
 })
 
 const fetchStudents = async () => {
@@ -163,10 +172,40 @@ const confirmToggleStatus = async () => {
   }
 }
 
+// Print Handlers
+const handlePrint = (type, studentId = null) => {
+  if (type === 'selected') {
+    if (selectedStudentIds.value.length === 0) {
+      uiStore.addToast('Pilih minimal satu siswa untuk dicetak', 'error')
+      return
+    }
+    printStudents.value = students.value.filter(s => selectedStudentIds.value.includes(s.studentId))
+  } else if (type === 'single' && studentId) {
+    printStudents.value = students.value.filter(s => s.studentId === studentId)
+  } else {
+    // print all currently fetched/filtered students
+    if (students.value.length === 0) {
+      uiStore.addToast('Tidak ada data untuk dicetak', 'error')
+      return
+    }
+    printStudents.value = students.value
+  }
+  
+  isPrinting.value = true
+  setTimeout(() => {
+    window.print()
+  }, 300)
+}
+
 // Dropdown Helper
 const getDropdownItems = (student) => {
   const items = []
   if (student.account?.exists) {
+    items.push({
+      label: 'Cetak Kartu',
+      icon: Printer,
+      onClick: () => handlePrint('single', student.studentId)
+    })
     items.push({
       label: 'Reset Password',
       icon: KeyRound,
@@ -208,16 +247,20 @@ const formatDate = (dateStr) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div>
+    <!-- Render Print Layout completely replacing UI when printing -->
+    <PrintCards v-if="isPrinting" :students="printStudents" />
+    
+    <div v-show="!isPrinting" class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold text-slate-800">Akun CBT Siswa</h2>
         <p class="text-slate-500 mt-1">Kelola akun yang digunakan siswa untuk mengakses CBT Edulite.</p>
       </div>
-      <BaseButton class="w-full sm:w-auto shadow-sm" @click="openGenerateModal" :loading="generating">
-        <KeyRound class="w-4 h-4 mr-2" /> Generate Akun
-      </BaseButton>
-    </div>
+        <BaseButton class="w-full sm:w-auto shadow-sm" @click="openGenerateModal" :loading="generating">
+          <KeyRound class="w-4 h-4 mr-2" /> Generate Akun
+        </BaseButton>
+      </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -303,6 +346,27 @@ const formatDate = (dateStr) => {
 
     <!-- Main Content -->
     <template v-else>
+      <div v-if="students.length > 0" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div class="flex items-center gap-2">
+          <BaseButton 
+            variant="outline" 
+            size="sm"
+            @click="handlePrint('selected')"
+            :disabled="selectedStudentIds.length === 0"
+          >
+            <Printer class="w-4 h-4 mr-2" />
+            Cetak Terpilih ({{ selectedStudentIds.length }})
+          </BaseButton>
+          <BaseButton 
+            variant="outline" 
+            size="sm"
+            @click="handlePrint('all')"
+          >
+            <Printer class="w-4 h-4 mr-2" />
+            Cetak Hasil Filter ({{ students.length }})
+          </BaseButton>
+        </div>
+      </div>
       <div v-if="students.length === 0" class="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-sm">
         <div class="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
           <Users class="w-8 h-8" />
@@ -493,5 +557,6 @@ const formatDate = (dateStr) => {
       </template>
     </BaseModal>
 
+    </div>
   </div>
 </template>

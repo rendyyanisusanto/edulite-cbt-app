@@ -32,7 +32,8 @@ const selectedNoAccountCount = computed(() => {
 
 const classNoAccountCount = computed(() => {
   if (!selectedClass.value) return 0
-  return props.students.filter(s => s.class?.id === selectedClass.value && !s.account?.exists).length
+  const cId = Number(selectedClass.value)
+  return props.students.filter(s => s.class?.id === cId && !s.account?.exists).length
 })
 
 const handleSubmit = () => {
@@ -40,7 +41,7 @@ const handleSubmit = () => {
     emit('submit', { studentIds: props.selectedStudentIds })
   } else if (mode.value === 'class') {
     if (!selectedClass.value) return
-    emit('submit', { classId: selectedClass.value })
+    emit('submit', { classId: Number(selectedClass.value) })
   } else {
     // all_no_account
     const ids = props.students.filter(s => !s.account?.exists).map(s => s.studentId)
@@ -76,14 +77,13 @@ const handleSubmit = () => {
           <div class="ml-3 w-full">
             <span class="block text-sm font-semibold text-slate-800">Berdasarkan Kelas</span>
             <div v-if="mode === 'class'" class="mt-3">
-              <BaseSelect
-                name="classId"
+              <select
                 v-model="selectedClass"
-                :options="classes.map(c => ({ value: c.id, label: c.name }))"
-              />
-              <span class="block text-xs text-slate-500 mt-2 font-medium" v-if="selectedClass">
-                {{ classNoAccountCount }} siswa belum memiliki akun di kelas ini.
-              </span>
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:border-primary-blue focus:ring-blue-100 hover:border-slate-400 bg-white"
+              >
+                <option value="" disabled>Pilih salah satu...</option>
+                <option v-for="c in classes" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
             </div>
           </div>
         </label>
@@ -110,7 +110,7 @@ const handleSubmit = () => {
         <BaseButton 
           variant="primary" 
           @click="handleSubmit" 
-          :disabled="(mode === 'selected' && selectedNoAccountCount === 0) || (mode === 'class' && (!selectedClass || classNoAccountCount === 0)) || (mode === 'all_no_account' && noAccountCount === 0)"
+          :disabled="(mode === 'selected' && selectedNoAccountCount === 0) || (mode === 'class' && !selectedClass) || (mode === 'all_no_account' && noAccountCount === 0)"
         >
           Generate Akun
         </BaseButton>

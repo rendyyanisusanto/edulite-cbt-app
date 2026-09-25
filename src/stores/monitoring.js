@@ -142,6 +142,15 @@ export const useMonitoringStore = defineStore('monitoring', {
       this.searchQuery = ''
       this.statusFilter = 'SEMUA'
       this.participantDetail = null
+    },
+
+    async resetParticipantTime(scheduleId, participantId) {
+      try {
+        const response = await api.post(`${this.apiPrefix}/monitoring/${scheduleId}/participants/${participantId}/reset-time`)
+        return response.data
+      } catch (err) {
+        throw new Error(err.response?.data?.message || 'Gagal mereset waktu ujian peserta.')
+      }
     }
   }
 })

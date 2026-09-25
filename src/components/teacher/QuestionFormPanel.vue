@@ -33,16 +33,20 @@ const schema = toTypedSchema(
   z.object({
     type: z.enum(['pilihan_ganda', 'esai']),
     questionText: z.string().min(1, 'Pertanyaan wajib diisi').refine(val => val !== '<p><br></p>', 'Pertanyaan wajib diisi'),
-    optionA: z.string().min(1, 'Pilihan A wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan A wajib diisi'),
-    optionB: z.string().min(1, 'Pilihan B wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan B wajib diisi'),
-    optionC: z.string().min(1, 'Pilihan C wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan C wajib diisi'),
-    optionD: z.string().min(1, 'Pilihan D wajib diisi').refine(val => val !== '<p><br></p>', 'Pilihan D wajib diisi'),
+    optionA: z.string().optional(),
+    optionB: z.string().optional(),
+    optionC: z.string().optional(),
+    optionD: z.string().optional(),
     optionE: z.string().optional(),
     correctAnswerPG: z.string().optional(),
     correctAnswerEssay: z.string().optional(),
     weight: z.number().min(1, 'Bobot minimal 1')
   }).superRefine((data, ctx) => {
     if (data.type === 'pilihan_ganda') {
+      if (!data.optionA || data.optionA === '<p><br></p>') ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan A wajib diisi', path: ['optionA'] })
+      if (!data.optionB || data.optionB === '<p><br></p>') ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan B wajib diisi', path: ['optionB'] })
+      if (!data.optionC || data.optionC === '<p><br></p>') ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan C wajib diisi', path: ['optionC'] })
+      if (!data.optionD || data.optionD === '<p><br></p>') ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Pilihan D wajib diisi', path: ['optionD'] })
       if (!data.correctAnswerPG) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Kunci jawaban wajib dipilih', path: ['correctAnswerPG'] })
     }
   })

@@ -51,6 +51,18 @@ const handleCloseDrawer = () => {
   showDrawer.value = false
   selectedParticipantId.value = null
 }
+
+const handleResetTime = async (participantId) => {
+  if (!confirm('Apakah Anda yakin ingin mereset waktu ujian untuk peserta ini? Waktu akan diperpanjang sesuai durasi awal ujian.')) return
+  
+  try {
+    await monitoringStore.resetParticipantTime(scheduleId, participantId)
+    await monitoringStore.fetchMonitoringDetail(scheduleId, true)
+    alert('Berhasil mereset waktu ujian.')
+  } catch (error) {
+    alert(error.message)
+  }
+}
 </script>
 
 <template>
@@ -161,6 +173,7 @@ const handleCloseDrawer = () => {
           <MonitoringTable 
             :participants="monitoringStore.filteredParticipants"
             @view-detail="handleOpenDetail"
+            @reset-time="handleResetTime"
           />
         </div>
       </div>

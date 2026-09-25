@@ -10,6 +10,7 @@ import Skeleton from '@/components/common/Skeleton.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import QuestionFormPanel from '@/components/teacher/QuestionFormPanel.vue'
 import ImportQuestionModal from '@/components/teacher/ImportQuestionModal.vue'
+import CloneQuestionModal from '@/components/teacher/CloneQuestionModal.vue'
 import { 
   ArrowLeft, 
   Plus, 
@@ -53,6 +54,7 @@ const questionToDelete = ref(null)
 const showMobileNavigator = ref(false)
 
 const importModalOpen = ref(false)
+const cloneModalOpen = ref(false)
 const isExporting = ref(false)
 
 const assignmentQuestions = computed(() => {
@@ -219,6 +221,20 @@ const handleImportSuccess = async (payload) => {
   }
 }
 
+const handleCloneSuccess = async (sourceAssignmentId) => {
+  cloneModalOpen.value = false
+  isSubmitting.value = true
+  uiStore.addToast('Memulai proses kloning soal...', 'info')
+  try {
+    await questionStore.cloneQuestions(assignmentId.value, sourceAssignmentId)
+    uiStore.addToast('Berhasil mengkloning soal', 'success')
+  } catch (error) {
+    uiStore.addToast(error.message || 'Gagal mengkloning soal', 'error')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 const stripHtmlTags = (html) => {
   const tmp = document.createElement('DIV');
   tmp.innerHTML = html;
@@ -350,6 +366,11 @@ onMounted(async () => {
         </div>
         
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
+          <BaseButton variant="info" @click="cloneModalOpen = true" class="justify-center py-2.5 bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100">
+            <Copy class="w-5 h-5 mr-2" />
+            Kloning Soal
+          </BaseButton>
+
           <BaseButton variant="info" @click="importModalOpen = true" class="justify-center py-2.5">
             <Upload class="w-5 h-5 mr-2" />
             Impor dari Excel
@@ -625,6 +646,15 @@ onMounted(async () => {
       :isOpen="importModalOpen"
       @close="importModalOpen = false"
       @import-success="handleImportSuccess"
+    />
+
+    <!-- Clone Modal -->
+    <CloneQuestionModal
+      :isOpen="cloneModalOpen"
+      :currentAssignmentId="assignmentId"
+      :currentSubjectId="assignment?.subject?.id"
+      @close="cloneModalOpen = false"
+      @clone-success="handleCloneSuccess"
     />
   </div>
 </template>

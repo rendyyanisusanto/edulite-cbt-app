@@ -95,6 +95,21 @@ export const useQuestionStore = defineStore('question', {
       }
     },
     
+    async cloneQuestions(assignmentId, sourceAssignmentId) {
+      this.loading = true
+      try {
+        const { data } = await api.post(`/teacher/assignments/${assignmentId}/clone-questions`, { sourceAssignmentId })
+        // Replace current assignment questions with updated list from backend
+        this.questions = this.questions.filter(q => q.assignmentId !== Number(assignmentId)).concat(data.data)
+        return data.data
+      } catch (err) {
+        console.error('Failed to clone questions:', err)
+        throw err
+      } finally {
+        this.loading = false
+      }
+    },
+    
     async deleteQuestion(id) {
       this.loading = true
       try {

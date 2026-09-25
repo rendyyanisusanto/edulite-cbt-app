@@ -9,7 +9,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view-detail'])
+const emit = defineEmits(['view-detail', 'reset-time'])
 
 const getStatusBadge = (status, isStale) => {
   if (isStale && status === 'IN_PROGRESS') {
@@ -117,12 +117,22 @@ const hasParticipants = computed(() => props.participants.length > 0)
               <div v-else class="text-sm text-slate-400">-</div>
             </td>
             <td class="px-6 py-4 text-center">
-              <button 
-                @click="emit('view-detail', p.participantId)"
-                class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-700 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors"
-              >
-                Detail
-              </button>
+              <div class="flex flex-col gap-1.5 items-center justify-center">
+                <button 
+                  @click="emit('view-detail', p.participantId)"
+                  class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-700 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                >
+                  Detail
+                </button>
+                <button 
+                  v-if="p.attempt"
+                  @click="emit('reset-time', p.participantId)"
+                  class="w-full px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors"
+                  title="Perpanjang/reset waktu ujian"
+                >
+                  Reset
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -163,13 +173,21 @@ const hasParticipants = computed(() => props.participants.length > 0)
             <div class="text-slate-400 font-medium mb-0.5">Last Activity</div>
             <div class="font-bold text-slate-700">{{ p.status === 'NOT_STARTED' ? '-' : formatRelativeTime(p.attempt?.lastActivityAt) }}</div>
           </div>
-          <div class="flex items-end justify-end">
+          <div class="flex flex-col gap-1.5 items-end justify-end">
             <button 
               @click="emit('view-detail', p.participantId)"
               class="px-3 py-1.5 bg-blue-50 text-blue-700 font-bold rounded-md flex items-center gap-1 hover:bg-blue-100 w-full justify-center"
             >
               Detail
               <ChevronRight class="w-3.5 h-3.5" />
+            </button>
+            <button 
+              v-if="p.attempt"
+              @click="emit('reset-time', p.participantId)"
+              class="px-3 py-1.5 bg-amber-50 text-amber-700 font-bold border border-amber-200 rounded-md flex items-center gap-1 hover:bg-amber-100 w-full justify-center"
+            >
+              <Clock class="w-3.5 h-3.5" />
+              Reset Waktu
             </button>
           </div>
         </div>

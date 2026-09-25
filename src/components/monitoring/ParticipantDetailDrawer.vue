@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { useMonitoringStore } from '@/stores/monitoring'
 import { X, Clock, PlayCircle, CheckCircle2, AlertTriangle, User } from 'lucide-vue-next'
 
@@ -12,6 +12,25 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const monitoringStore = useMonitoringStore()
+
+const isResetting = ref(false)
+
+const handleResetTime = async () => {
+  if (!confirm('Apakah Anda yakin ingin mereset waktu ujian untuk peserta ini? Waktu akan diperpanjang sesuai durasi awal ujian.')) return
+  
+  isResetting.value = true
+  try {
+    await monitoringStore.resetParticipantTime(props.scheduleId, props.participantId)
+    // Refresh participant and schedule state
+    await monitoringStore.fetchMonitoringDetail(props.scheduleId, true)
+    await monitoringStore.fetchParticipantDetail(props.scheduleId, props.participantId)
+    alert('Berhasil mereset waktu ujian.')
+  } catch (error) {
+    alert(error.message)
+  } finally {
+    isResetting.value = false
+  }
+}
 
 watch(() => props.show, async (newVal) => {
   if (newVal && props.participantId) {
@@ -116,8 +135,20 @@ const flaggedCount = computed(() => detail.value?.questions?.filter(q => q.flagg
         <div class="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
           
           <!-- Activity Stats -->
-          <div class="p-6 md:w-1/2">
-            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Aktivitas Ujian</h4>
+          <div class="p-6 md:w-1/2 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktivitas Ujian</h4>
+              <button 
+                v-if="participant.attempt"
+                @click="handleResetTime"
+                :disabled="isResetting"
+                class="text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Perpanjang/reset waktu ujian"
+              >
+                <Clock class="w-3 h-3" />
+                {{ isResetting ? 'Mereset...' : 'Reset Waktu' }}
+              </button>
+            </div>
             
             <div class="grid grid-cols-2 gap-4">
             <div>
