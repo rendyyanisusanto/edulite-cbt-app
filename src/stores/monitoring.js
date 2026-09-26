@@ -151,6 +151,15 @@ export const useMonitoringStore = defineStore('monitoring', {
       } catch (err) {
         throw new Error(err.response?.data?.message || 'Gagal mereset waktu ujian peserta.')
       }
+    },
+
+    async toggleParticipantPause(scheduleId, participantId) {
+      try {
+        const response = await api.post(`${this.apiPrefix}/monitoring/${scheduleId}/participants/${participantId}/toggle-pause`)
+        return response.data
+      } catch (err) {
+        throw new Error(err.response?.data?.message || 'Gagal melakukan pause/resume.')
+      }
     }
   }
 })

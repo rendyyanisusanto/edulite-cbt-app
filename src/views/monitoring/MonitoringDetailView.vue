@@ -63,6 +63,15 @@ const handleResetTime = async (participantId) => {
     alert(error.message)
   }
 }
+
+const handleTogglePause = async (participantId) => {
+  try {
+    await monitoringStore.toggleParticipantPause(scheduleId, participantId)
+    await monitoringStore.fetchMonitoringDetail(scheduleId, true)
+  } catch (error) {
+    alert(error.message)
+  }
+}
 </script>
 
 <template>
@@ -174,6 +183,7 @@ const handleResetTime = async (participantId) => {
             :participants="monitoringStore.filteredParticipants"
             @view-detail="handleOpenDetail"
             @reset-time="handleResetTime"
+            @toggle-pause="handleTogglePause"
           />
         </div>
       </div>

@@ -14,6 +14,7 @@ const emit = defineEmits(['close'])
 const monitoringStore = useMonitoringStore()
 
 const isResetting = ref(false)
+const isTogglingPause = ref(false)
 
 const handleResetTime = async () => {
   if (!confirm('Apakah Anda yakin ingin mereset waktu ujian untuk peserta ini? Waktu akan diperpanjang sesuai durasi awal ujian.')) return
@@ -29,6 +30,19 @@ const handleResetTime = async () => {
     alert(error.message)
   } finally {
     isResetting.value = false
+  }
+}
+
+const handleTogglePause = async () => {
+  isTogglingPause.value = true
+  try {
+    await monitoringStore.toggleParticipantPause(props.scheduleId, props.participantId)
+    await monitoringStore.fetchMonitoringDetail(props.scheduleId, true)
+    await monitoringStore.fetchParticipantDetail(props.scheduleId, props.participantId)
+  } catch (error) {
+    alert(error.message)
+  } finally {
+    isTogglingPause.value = false
   }
 }
 
@@ -55,6 +69,7 @@ const getStatusBadge = (status, isStale) => {
     case 'IN_PROGRESS': return { class: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Mengerjakan' }
     case 'SUBMITTED': return { class: 'bg-green-50 text-green-700 border-green-200', label: 'Selesai' }
     case 'TIME_EXPIRED': return { class: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Waktu Habis' }
+    case 'PAUSED': return { class: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: 'Di-pause' }
     case 'BLOCKED': return { class: 'bg-red-50 text-red-700 border-red-200', label: 'Diblokir' }
     default: return { class: 'bg-slate-100 text-slate-700 border-slate-200', label: status }
   }
@@ -138,16 +153,28 @@ const flaggedCount = computed(() => detail.value?.questions?.filter(q => q.flagg
           <div class="p-6 md:w-1/2 flex flex-col">
             <div class="flex justify-between items-center mb-4">
               <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aktivitas Ujian</h4>
-              <button 
-                v-if="participant.attempt"
-                @click="handleResetTime"
-                :disabled="isResetting"
-                class="text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Perpanjang/reset waktu ujian"
-              >
-                <Clock class="w-3 h-3" />
-                {{ isResetting ? 'Mereset...' : 'Reset Waktu' }}
-              </button>
+              <div class="flex items-center gap-2">
+                <button 
+                  v-if="participant.status === 'IN_PROGRESS' || participant.status === 'PAUSED'"
+                  @click="handleTogglePause"
+                  :disabled="isTogglingPause"
+                  class="text-xs font-bold bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Pause/Resume ujian"
+                >
+                  <Clock class="w-3 h-3" />
+                  {{ isTogglingPause ? 'Tunggu...' : (participant.status === 'PAUSED' ? 'Resume' : 'Pause') }}
+                </button>
+                <button 
+                  v-if="participant.attempt"
+                  @click="handleResetTime"
+                  :disabled="isResetting"
+                  class="text-xs font-bold bg-amber-50 text-amber-700 px-2 py-1 rounded border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Perpanjang/reset waktu ujian"
+                >
+                  <Clock class="w-3 h-3" />
+                  {{ isResetting ? 'Mereset...' : 'Reset Waktu' }}
+                </button>
+              </div>
             </div>
             
             <div class="grid grid-cols-2 gap-4">
@@ -176,7 +203,7 @@ const flaggedCount = computed(() => detail.value?.questions?.filter(q => q.flagg
               <div class="text-xs font-medium text-slate-500 mb-1">Sisa Waktu</div>
               <div class="font-bold text-slate-900 flex items-center gap-1.5">
                 <AlertTriangle class="w-4 h-4 text-slate-400" />
-                {{ participant.status === 'IN_PROGRESS' ? formatRemainingTime(participant.remainingSeconds) : '-' }}
+                {{ participant.status === 'IN_PROGRESS' || participant.status === 'PAUSED' ? formatRemainingTime(participant.remainingSeconds) : '-' }}
               </div>
             </div>
           </div>

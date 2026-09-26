@@ -45,7 +45,18 @@ const detailedAnswers = computed(() => {
     const studentAns = studentResult.value.answers.find(a => a.questionId === q.id)
     let status = 'kosong'
     if (studentAns) {
-      status = studentAns.isCorrect ? 'benar' : 'salah'
+      if (q.questionType === 'ESSAY') {
+        if (studentAns.gradingStatus === 'MANUALLY_GRADED') {
+          // You could count it as 'benar' if they get any score, or maybe full score. Let's say if > 0 it's partially or fully 'benar'. 
+          // Or just 'benar' if it is >= maxScore. Let's say scoreAwarded > 0 is 'benar' for simplicity, or we can use another badge if needed.
+          // Wait, if it's graded and score > 0, we can consider it 'benar'.
+          status = (studentAns.scoreAwarded > 0) ? 'benar' : 'salah'
+        } else {
+          status = 'pending' // we need a pending status for un-graded essay
+        }
+      } else {
+        status = studentAns.isCorrect ? 'benar' : 'salah'
+      }
     }
 
     // Find full text of student answer and correct answer
@@ -63,7 +74,10 @@ const detailedAnswers = computed(() => {
       studentAnswerText,
       correctAnswerKey: q.correctAnswer,
       correctAnswerText,
-      status
+      status,
+      scoreAwarded: studentAns?.scoreAwarded,
+      maxScore: studentAns?.maxScore,
+      gradingStatus: studentAns?.gradingStatus
     }
   })
 })
@@ -200,6 +214,9 @@ onMounted(async () => {
                 <span v-else-if="ans.status === 'salah'" class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
                   <XCircle class="w-3.5 h-3.5 mr-1" /> Salah
                 </span>
+                <span v-else-if="ans.status === 'pending'" class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
+                  <AlertCircle class="w-3.5 h-3.5 mr-1" /> Menunggu Penilaian
+                </span>
                 <span v-else class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">
                   <MinusCircle class="w-3.5 h-3.5 mr-1" /> Kosong
                 </span>
@@ -207,9 +224,13 @@ onMounted(async () => {
             </div>
             
             <div class="p-4 sm:p-5">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-bold px-2 py-0.5 rounded" :class="ans.type === 'ESSAY' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'">
                   {{ ans.type === 'ESSAY' ? 'Esai' : 'Pilihan Ganda' }}
+                </span>
+                
+                <span v-if="ans.type === 'ESSAY' && ans.gradingStatus === 'MANUALLY_GRADED'" class="text-xs font-bold text-slate-500">
+                  Nilai: <span class="text-slate-800">{{ ans.scoreAwarded }}</span> / {{ ans.maxScore }}
                 </span>
               </div>
               <div class="text-slate-800 font-medium prose prose-sm max-w-none mb-6" v-html="ans.questionText"></div>
@@ -258,6 +279,7 @@ onMounted(async () => {
                 :class="{
                   'bg-green-100 text-green-700 border-green-200 hover:bg-green-200': ans.status === 'benar',
                   'bg-red-100 text-red-700 border-red-200 hover:bg-red-200': ans.status === 'salah',
+                  'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200': ans.status === 'pending',
                   'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200': ans.status === 'kosong'
                 }"
               >

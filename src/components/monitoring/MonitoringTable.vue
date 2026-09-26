@@ -9,7 +9,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view-detail', 'reset-time'])
+const emit = defineEmits(['view-detail', 'reset-time', 'toggle-pause'])
 
 const getStatusBadge = (status, isStale) => {
   if (isStale && status === 'IN_PROGRESS') {
@@ -21,6 +21,7 @@ const getStatusBadge = (status, isStale) => {
     case 'IN_PROGRESS': return { class: 'bg-blue-50 text-blue-700 border-blue-200', label: 'Mengerjakan' }
     case 'SUBMITTED': return { class: 'bg-green-50 text-green-700 border-green-200', label: 'Selesai' }
     case 'TIME_EXPIRED': return { class: 'bg-amber-50 text-amber-700 border-amber-200', label: 'Waktu Habis' }
+    case 'PAUSED': return { class: 'bg-indigo-50 text-indigo-700 border-indigo-200', label: 'Di-pause' }
     case 'BLOCKED': return { class: 'bg-red-50 text-red-700 border-red-200', label: 'Diblokir' }
     default: return { class: 'bg-slate-100 text-slate-700 border-slate-200', label: status }
   }
@@ -111,7 +112,7 @@ const hasParticipants = computed(() => props.participants.length > 0)
               </div>
             </td>
             <td class="px-6 py-4">
-              <div v-if="p.status === 'IN_PROGRESS'" class="text-sm font-bold text-slate-700">
+              <div v-if="p.status === 'IN_PROGRESS' || p.status === 'PAUSED'" class="text-sm font-bold text-slate-700">
                 {{ formatRemainingTime(p.remainingSeconds) }}
               </div>
               <div v-else class="text-sm text-slate-400">-</div>
@@ -123,6 +124,14 @@ const hasParticipants = computed(() => props.participants.length > 0)
                   class="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-bold text-slate-700 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-colors"
                 >
                   Detail
+                </button>
+                <button 
+                  v-if="p.status === 'IN_PROGRESS' || p.status === 'PAUSED'"
+                  @click="emit('toggle-pause', p.participantId)"
+                  class="w-full px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-md text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                  title="Pause/Resume ujian"
+                >
+                  {{ p.status === 'PAUSED' ? 'Resume' : 'Pause' }}
                 </button>
                 <button 
                   v-if="p.attempt"
@@ -167,7 +176,7 @@ const hasParticipants = computed(() => props.participants.length > 0)
           </div>
           <div>
             <div class="text-slate-400 font-medium mb-0.5">Sisa Waktu</div>
-            <div class="font-bold text-slate-700">{{ p.status === 'IN_PROGRESS' ? formatRemainingTime(p.remainingSeconds) : '-' }}</div>
+            <div class="font-bold text-slate-700">{{ p.status === 'IN_PROGRESS' || p.status === 'PAUSED' ? formatRemainingTime(p.remainingSeconds) : '-' }}</div>
           </div>
           <div>
             <div class="text-slate-400 font-medium mb-0.5">Last Activity</div>
@@ -180,6 +189,14 @@ const hasParticipants = computed(() => props.participants.length > 0)
             >
               Detail
               <ChevronRight class="w-3.5 h-3.5" />
+            </button>
+            <button 
+              v-if="p.status === 'IN_PROGRESS' || p.status === 'PAUSED'"
+              @click="emit('toggle-pause', p.participantId)"
+              class="px-3 py-1.5 bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 rounded-md flex items-center gap-1 hover:bg-indigo-100 w-full justify-center"
+            >
+              <Clock class="w-3.5 h-3.5" />
+              {{ p.status === 'PAUSED' ? 'Resume' : 'Pause' }}
             </button>
             <button 
               v-if="p.attempt"
