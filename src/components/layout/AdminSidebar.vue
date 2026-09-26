@@ -66,7 +66,7 @@ const handleMenuClick = () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-sidebar">
+  <div class="flex flex-col h-full flex-1 overflow-hidden bg-sidebar">
     <!-- Logo area -->
     <div class="flex items-center px-6 h-20 border-b border-white/10 shrink-0">
       <div class="flex items-center space-x-3 text-white">

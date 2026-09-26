@@ -5,7 +5,10 @@ import { useExamStore } from '@/stores/exam'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useScheduleStore } from '@/stores/schedule'
 import { useUiStore } from '@/stores/ui'
-import { ArrowLeft, Users, UserCheck, Calendar, BookOpen, AlertCircle, Plus, MoreVertical, Clock, Eye, Trash2 } from 'lucide-vue-next'
+import { useMasterStore } from '@/stores/master'
+import { ArrowLeft, Users, UserCheck, Calendar, BookOpen, AlertCircle, Plus, MoreVertical, Clock, Eye, Trash2, Download } from 'lucide-vue-next'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import Skeleton from '@/components/common/Skeleton.vue'
@@ -23,6 +26,7 @@ const examStore = useExamStore()
 const assignmentStore = useAssignmentStore()
 const scheduleStore = useScheduleStore()
 const uiStore = useUiStore()
+const masterStore = useMasterStore()
 
 const exam = ref(null)
 const assignments = ref([])
@@ -48,6 +52,10 @@ const fetchExamData = async () => {
     exam.value = await examStore.getExamById(examId)
     assignments.value = await assignmentStore.fetchAssignmentsByExamId(examId)
     await scheduleStore.fetchSchedules()
+    // Fetch master data (teachers, subjects, classes) if not populated yet
+    if (masterStore.teachers.length === 0) {
+      await masterStore.fetchAll()
+    }
     examSchedules.value = scheduleStore.schedules.filter(s => s.examId == examId)
   } catch (error) {
     notFound.value = true
@@ -61,6 +69,76 @@ onMounted(() => {
 })
 
 const goBack = () => router.push('/admin/exams')
+
+const downloadSchedulePDF = () => {
+  if (examSchedules.value.length === 0) {
+    uiStore.addToast('Tidak ada jadwal untuk didownload', 'warning')
+    return
+  }
+
+  const doc = new jsPDF()
+  
+  // Group schedules by day
+  const grouped = {}
+  
+  // Sort by start_at first
+  const sortedSchedules = [...examSchedules.value].sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+
+  sortedSchedules.forEach(s => {
+    const date = new Date(s.start_at).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    if (!grouped[date]) grouped[date] = []
+    grouped[date].push(s)
+  })
+
+  // Title
+  doc.setFontSize(16)
+  doc.text(`Jadwal Ujian: ${exam.value?.title}`, 14, 15)
+  doc.setFontSize(11)
+  doc.text(`Tahun Ajaran ${exam.value?.academicYear} - Semester ${exam.value?.semester}`, 14, 22)
+
+  let startY = 30
+
+  Object.keys(grouped).forEach((date) => {
+    // If not enough space for title and table header, add page
+    if (startY > doc.internal.pageSize.height - 40) {
+      doc.addPage()
+      startY = 20
+    }
+    
+    doc.setFontSize(12)
+    doc.setFont(undefined, 'bold')
+    doc.text(`Tanggal: ${date}`, 14, startY)
+    doc.setFont(undefined, 'normal')
+    
+    const tableData = grouped[date].map(s => {
+      const assignment = assignments.value.find(a => a.id === s.assignmentId)
+      const teacherName = assignment ? assignment.teacherName : '-'
+      const time = `${new Date(s.start_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':')} - ${new Date(s.end_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':')}`
+      return [
+        time,
+        s.subjectName,
+        s.className,
+        teacherName,
+        s.token || '-'
+      ]
+    })
+
+    autoTable(doc, {
+      startY: startY + 5,
+      head: [['Waktu', 'Mata Pelajaran', 'Kelas', 'Guru', 'Token']],
+      body: tableData,
+      theme: 'grid',
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [59, 130, 246] }, // Tailwind primary blue approx
+      margin: { top: 10, left: 14, right: 14 }
+    })
+
+    startY = doc.lastAutoTable.finalY + 15
+  })
+
+  doc.save(`Jadwal_Ujian_${exam.value?.title}.pdf`)
+  uiStore.addToast('PDF berhasil didownload', 'success')
+}
 
 // Actions
 const handleAction = (action, payload) => {
@@ -424,9 +502,14 @@ const progressStats = computed(() => {
             <h3 class="text-lg font-semibold text-slate-800">Jadwal Ujian</h3>
             <p class="text-sm text-slate-500 mt-0.5">Kelola sesi pelaksanaan ujian dan token akses untuk siswa.</p>
           </div>
-          <BaseButton class="w-full sm:w-auto" @click="isScheduleFormOpen = true">
-            <Plus class="w-4 h-4 mr-2" /> Buat Jadwal
-          </BaseButton>
+          <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            <BaseButton variant="secondary" class="w-full sm:w-auto justify-center" @click="downloadSchedulePDF" :disabled="examSchedules.length === 0">
+              <Download class="w-4 h-4 mr-2" /> Download PDF
+            </BaseButton>
+            <BaseButton class="w-full sm:w-auto justify-center" @click="isScheduleFormOpen = true">
+              <Plus class="w-4 h-4 mr-2" /> Buat Jadwal
+            </BaseButton>
+          </div>
         </div>
 
         <div class="p-6" v-if="loading">

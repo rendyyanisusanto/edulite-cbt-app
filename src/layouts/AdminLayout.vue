@@ -10,7 +10,7 @@ const { isSidebarOpen } = storeToRefs(uiStore)
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex">
+  <div class="h-screen bg-background flex overflow-hidden">
     <!-- Mobile Sidebar Overlay -->
     <Transition name="fade">
       <div 

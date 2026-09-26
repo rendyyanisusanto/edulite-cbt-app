@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAssignmentStore } from '@/stores/assignment'
 import { useQuestionStore } from '@/stores/question'
@@ -9,6 +9,7 @@ import { ArrowLeft, CheckCircle2, XCircle, MinusCircle, AlertCircle } from 'luci
 import Skeleton from '@/components/common/Skeleton.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
+import api from '@/services/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,6 +38,9 @@ const statusOptions = [
   { label: 'Kosong', value: 'kosong' }
 ]
 
+const gradingInputs = ref({})
+const isGrading = ref({})
+
 // Combine question data with student's answers
 const detailedAnswers = computed(() => {
   if (!studentResult.value || assignmentQuestions.value.length === 0) return []
@@ -61,22 +65,29 @@ const detailedAnswers = computed(() => {
 
     // Find full text of student answer and correct answer
     const studentAnswerText = studentAns && studentAns.studentAnswer
-      ? q.questionType === 'ESSAY' ? studentAns.studentAnswer : (q.options?.find(o => o.optionKey === studentAns.studentAnswer)?.optionText || '')
+      ? q.questionType === 'ESSAY' ? studentAns.studentAnswer : (q.options?.find(o => o.key === studentAns.studentAnswer)?.text || '')
       : ''
-    const correctAnswerText = q.questionType === 'ESSAY' ? q.correctAnswer : (q.options?.find(o => o.optionKey === q.correctAnswer)?.optionText || '')
+      
+    let essayRubric = ''
+    if (q.questionType === 'ESSAY') {
+      if (typeof q.answerKey === 'string' && q.answerKey.trim() !== '') essayRubric = q.answerKey
+      else if (typeof q.explanation === 'string' && q.explanation.trim() !== '') essayRubric = q.explanation
+    }
+    const correctAnswerText = q.questionType === 'ESSAY' ? essayRubric : (q.options?.find(o => o.key === q.answerKey)?.text || '')
 
     return {
       index: index + 1,
+      answerId: studentAns?.answerId,
       questionId: q.id,
       questionText: q.questionText,
       type: q.questionType || 'SINGLE_CHOICE',
       studentAnswerKey: studentAns?.studentAnswer || null,
       studentAnswerText,
-      correctAnswerKey: q.correctAnswer,
+      correctAnswerKey: q.answerKey,
       correctAnswerText,
       status,
       scoreAwarded: studentAns?.scoreAwarded,
-      maxScore: studentAns?.maxScore,
+      maxScore: studentAns?.maxScore || q.score || 0,
       gradingStatus: studentAns?.gradingStatus
     }
   })
@@ -99,6 +110,35 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+watch(detailedAnswers, (newVal) => {
+  newVal.forEach(ans => {
+    if (ans.type === 'ESSAY' && ans.answerId && gradingInputs.value[ans.answerId] === undefined) {
+      gradingInputs.value[ans.answerId] = ans.scoreAwarded || 0
+    }
+  })
+}, { immediate: true })
+
+const submitGrade = async (ans) => {
+  if (gradingInputs.value[ans.answerId] === undefined) return
+  if (gradingInputs.value[ans.answerId] > ans.maxScore) {
+    alert(`Nilai maksimal adalah ${ans.maxScore}`)
+    return
+  }
+  isGrading.value[ans.answerId] = true
+  try {
+    await api.put(`/teacher/answers/${ans.answerId}/grade`, {
+      score: gradingInputs.value[ans.answerId]
+    })
+    // refetch result
+    await resultStore.fetchStudentResult(assignmentId.value, studentId.value)
+    alert('Nilai berhasil disimpan!')
+  } catch (error) {
+    alert(error.response?.data?.message || 'Gagal menyimpan nilai')
+  } finally {
+    isGrading.value[ans.answerId] = false
+  }
+}
 </script>
 
 <template>
@@ -259,6 +299,25 @@ onMounted(async () => {
                   <div class="flex items-start">
                     <span v-if="ans.type !== 'ESSAY'" class="font-bold mr-2 text-slate-800">{{ ans.correctAnswerKey }}.</span>
                     <span class="text-slate-800 prose prose-sm max-w-none" v-html="ans.correctAnswerText || '<em>Tidak ada rubrik.</em>'"></span>
+                  </div>
+                  
+                  <div v-if="ans.type === 'ESSAY'" class="mt-4 pt-4 border-t border-blue-200">
+                    <template v-if="ans.answerId">
+                      <label class="block text-xs font-bold text-slate-700 mb-2">Beri Nilai (Maks: {{ ans.maxScore }})</label>
+                      <div class="flex gap-2 items-center">
+                        <input 
+                          type="number" 
+                          min="0" 
+                          :max="ans.maxScore" 
+                          v-model.number="gradingInputs[ans.answerId]" 
+                          class="w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        />
+                        <BaseButton size="sm" @click="submitGrade(ans)" :loading="isGrading[ans.answerId]">Simpan Nilai</BaseButton>
+                      </div>
+                    </template>
+                    <div v-else class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-2 rounded border border-slate-200 inline-block">
+                      Siswa tidak menjawab soal ini (Nilai otomatis 0).
+                    </div>
                   </div>
                 </div>
               </div>

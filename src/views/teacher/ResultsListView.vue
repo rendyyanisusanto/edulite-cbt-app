@@ -96,7 +96,7 @@ onMounted(async () => {
               <Users class="w-4 h-4 mr-1.5" /> Peserta
             </div>
             <div class="font-bold text-slate-800 text-lg">
-              {{ getSummary(assignment.id).participants || 32 }}
+              {{ assignment.participantCount || 0 }}
             </div>
           </div>
           <div class="bg-slate-50 rounded-lg p-3 border border-slate-100">
@@ -104,7 +104,7 @@ onMounted(async () => {
               <Activity class="w-4 h-4 mr-1.5" /> Rata-rata
             </div>
             <div class="font-bold text-slate-800 text-lg">
-              {{ getSummary(assignment.id).average || 81.4 }}
+              {{ assignment.averageScore || 0 }}
             </div>
           </div>
         </div>

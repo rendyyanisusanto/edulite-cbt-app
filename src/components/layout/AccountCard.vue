@@ -24,7 +24,7 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <div class="p-4 bg-sidebar-dark/50 mt-auto">
+  <div class="p-4 bg-sidebar-dark/50 mt-auto shrink-0">
     <div class="flex items-center p-3 bg-sidebar-dark rounded-xl border border-white/5">
       <div class="flex-shrink-0">
         <div class="w-10 h-10 rounded-full bg-primary-blue flex items-center justify-center text-white font-semibold text-sm">
