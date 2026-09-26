@@ -472,7 +472,7 @@ const progressStats = computed(() => {
                     {{ new Date(s.start_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) }}
                   </div>
                   <div class="text-xs text-slate-500 mt-0.5">
-                    {{ new Date(s.start_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }} - {{ new Date(s.end_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }}
+                    {{ new Date(s.start_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':') }} - {{ new Date(s.end_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':') }}
                   </div>
                   <div class="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full inline-block mt-1">Durasi: {{ s.duration_minutes }}m</div>
                 </td>

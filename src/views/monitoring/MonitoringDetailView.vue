@@ -32,7 +32,7 @@ const schedule = computed(() => monitoringStore.currentSchedule)
 const summary = computed(() => monitoringStore.summary)
 const lastUpdated = computed(() => {
   if (!monitoringStore.lastUpdatedAt) return '-'
-  return monitoringStore.lastUpdatedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return monitoringStore.lastUpdatedAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':')
 })
 
 const refreshManually = () => {

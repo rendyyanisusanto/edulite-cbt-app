@@ -35,7 +35,7 @@ const getStatusLabel = (status) => {
 
 const formatTime = (timeStr) => {
   if (!timeStr) return '-'
-  return new Date(timeStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+  return new Date(timeStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':')
 }
 
 const formatDate = (dateStr) => {

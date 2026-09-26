@@ -96,8 +96,11 @@ const handleSubmit = () => {
   }
   errorMsg.value = ''
   
-  const startAt = `${formData.value.startDate}T${formData.value.startTime}:00`
-  const endAt = `${formData.value.startDate}T${formData.value.endTime}:00`
+  const start = new Date(`${formData.value.startDate}T${formData.value.startTime}:00`)
+  const end = new Date(`${formData.value.startDate}T${formData.value.endTime}:00`)
+  
+  const startAt = start.toISOString()
+  const endAt = end.toISOString()
   
   emit('submit', {
     ...formData.value,
