@@ -260,6 +260,37 @@ const progressStats = computed(() => {
 
   return { ready, total, percent, info }
 })
+
+const sortedAssignments = computed(() => {
+  if (!assignments.value.length) return []
+  
+  // Hitung jumlah penugasan yang belum READY per guru
+  const teacherIncompleteCount = {}
+  assignments.value.forEach(a => {
+    if (!teacherIncompleteCount[a.teacherName]) {
+      teacherIncompleteCount[a.teacherName] = 0
+    }
+    if (a.status !== 'READY') {
+      teacherIncompleteCount[a.teacherName]++
+    }
+  })
+
+  return [...assignments.value].sort((a, b) => {
+    // 1. Urutkan berdasarkan jumlah yang belum selesai terbanyak (descending)
+    const countDiff = teacherIncompleteCount[b.teacherName] - teacherIncompleteCount[a.teacherName]
+    if (countDiff !== 0) return countDiff
+    
+    // 2. Kelompokkan berdasarkan nama guru (alphabetical)
+    if (a.teacherName < b.teacherName) return -1
+    if (a.teacherName > b.teacherName) return 1
+    
+    // 3. Urutkan berdasarkan nama mapel
+    if (a.subjectName < b.subjectName) return -1
+    if (a.subjectName > b.subjectName) return 1
+    
+    return 0
+  })
+})
 </script>
 
 <template>
@@ -433,7 +464,7 @@ const progressStats = computed(() => {
             </thead>
             <tbody>
               <tr 
-                v-for="assignment in assignments" 
+                v-for="assignment in sortedAssignments" 
                 :key="assignment.id"
                 class="border-b border-slate-100 hover:bg-slate-50/80 transition-colors"
               >
