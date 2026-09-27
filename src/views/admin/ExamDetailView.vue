@@ -78,16 +78,16 @@ const downloadSchedulePDF = () => {
 
   const doc = new jsPDF()
   
-  // Group schedules by day
+  // Group schedules by class
   const grouped = {}
   
   // Sort by start_at first
   const sortedSchedules = [...examSchedules.value].sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
 
   sortedSchedules.forEach(s => {
-    const date = new Date(s.start_at).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-    if (!grouped[date]) grouped[date] = []
-    grouped[date].push(s)
+    const className = s.className || '-'
+    if (!grouped[className]) grouped[className] = []
+    grouped[className].push(s)
   })
 
   // Title
@@ -98,7 +98,10 @@ const downloadSchedulePDF = () => {
 
   let startY = 30
 
-  Object.keys(grouped).forEach((date) => {
+  // Sort classes alphabetically
+  const sortedClasses = Object.keys(grouped).sort()
+
+  sortedClasses.forEach((className) => {
     // If not enough space for title and table header, add page
     if (startY > doc.internal.pageSize.height - 40) {
       doc.addPage()
@@ -107,17 +110,18 @@ const downloadSchedulePDF = () => {
     
     doc.setFontSize(12)
     doc.setFont(undefined, 'bold')
-    doc.text(`Tanggal: ${date}`, 14, startY)
+    doc.text(`Kelas: ${className}`, 14, startY)
     doc.setFont(undefined, 'normal')
     
-    const tableData = grouped[date].map(s => {
+    const tableData = grouped[className].map(s => {
       const assignment = assignments.value.find(a => a.id === s.assignmentId)
       const teacherName = assignment ? assignment.teacherName : '-'
+      const date = new Date(s.start_at).toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
       const time = `${new Date(s.start_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':')} - ${new Date(s.end_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false }).replace('.', ':')}`
       return [
+        date,
         time,
         s.subjectName,
-        s.className,
         teacherName,
         s.token || '-'
       ]
@@ -125,7 +129,7 @@ const downloadSchedulePDF = () => {
 
     autoTable(doc, {
       startY: startY + 5,
-      head: [['Waktu', 'Mata Pelajaran', 'Kelas', 'Guru', 'Token']],
+      head: [['Tanggal', 'Waktu', 'Mata Pelajaran', 'Guru', 'Token']],
       body: tableData,
       theme: 'grid',
       styles: { fontSize: 10 },
