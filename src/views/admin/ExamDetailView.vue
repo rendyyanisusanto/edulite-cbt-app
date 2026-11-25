@@ -6,7 +6,7 @@ import { useAssignmentStore } from '@/stores/assignment'
 import { useScheduleStore } from '@/stores/schedule'
 import { useUiStore } from '@/stores/ui'
 import { useMasterStore } from '@/stores/master'
-import { ArrowLeft, Users, UserCheck, Calendar, BookOpen, AlertCircle, Plus, MoreVertical, Clock, Eye, Trash2, Download } from 'lucide-vue-next'
+import { ArrowLeft, Users, UserCheck, Calendar, BookOpen, AlertCircle, Plus, MoreVertical, Clock, Eye, Trash2, Download, Layers } from 'lucide-vue-next'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
@@ -17,6 +17,7 @@ import BaseDropdown from '@/components/common/BaseDropdown.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import AssignmentFormModal from '@/components/assignment/AssignmentFormModal.vue'
+import BulkAssignmentModal from '@/components/assignment/BulkAssignmentModal.vue'
 import ExamFormModal from '@/components/exam/ExamFormModal.vue'
 import ScheduleFormModal from '@/components/admin/ScheduleFormModal.vue'
 
@@ -36,6 +37,7 @@ const notFound = ref(false)
 
 // Modal States
 const isFormOpen = ref(false)
+const isBulkFormOpen = ref(false)
 const isDeleteOpen = ref(false)
 const isExamFormOpen = ref(false)
 const isExamDeleteOpen = ref(false)
@@ -176,6 +178,20 @@ const handleFormSubmit = async (values) => {
     isFormOpen.value = false
   } catch (error) {
     uiStore.addToast(error.message || 'Terjadi kesalahan', 'error')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const handleBulkFormSubmit = async (values) => {
+  isSubmitting.value = true
+  try {
+    const res = await assignmentStore.createBulkAssignments(values)
+    uiStore.addToast(res?.message || 'Penugasan bulk berhasil ditambahkan', 'success')
+    await fetchExamData()
+    isBulkFormOpen.value = false
+  } catch (error) {
+    uiStore.addToast(error.message || 'Terjadi kesalahan saat bulk tambah', 'error')
   } finally {
     isSubmitting.value = false
   }
@@ -433,9 +449,14 @@ const sortedAssignments = computed(() => {
             <h3 class="text-lg font-semibold text-slate-800">Penugasan Guru</h3>
             <p class="text-sm text-slate-500 mt-0.5">Atur guru, mata pelajaran, dan kelas yang bertanggung jawab pada ujian ini.</p>
           </div>
-          <BaseButton class="w-full sm:w-auto" @click="handleAction('create')">
-            <Plus class="w-4 h-4 mr-2" /> Tambah Penugasan
-          </BaseButton>
+          <div class="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            <BaseButton variant="secondary" class="w-full sm:w-auto justify-center" @click="isBulkFormOpen = true">
+              <Layers class="w-4 h-4 mr-2" /> Bulk Tambah
+            </BaseButton>
+            <BaseButton class="w-full sm:w-auto justify-center" @click="handleAction('create')">
+              <Plus class="w-4 h-4 mr-2" /> Tambah Penugasan
+            </BaseButton>
+          </div>
         </div>
 
         <div class="p-6" v-if="loading">
@@ -450,9 +471,14 @@ const sortedAssignments = computed(() => {
           <p class="text-slate-500 mb-6 max-w-sm mx-auto">
             Tambahkan guru pengampu untuk mulai menyiapkan soal-soal ujian ini.
           </p>
-          <BaseButton @click="handleAction('create')">
-            <Plus class="w-4 h-4 mr-2" /> Tambah Penugasan
-          </BaseButton>
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <BaseButton variant="secondary" @click="isBulkFormOpen = true">
+              <Layers class="w-4 h-4 mr-2" /> Bulk Tambah
+            </BaseButton>
+            <BaseButton @click="handleAction('create')">
+              <Plus class="w-4 h-4 mr-2" /> Tambah Penugasan
+            </BaseButton>
+          </div>
         </div>
 
         <div v-else class="overflow-x-auto">
@@ -638,6 +664,15 @@ const sortedAssignments = computed(() => {
       :examId="exam?.id"
       @close="isFormOpen = false"
       @submit="handleFormSubmit"
+    />
+
+    <BulkAssignmentModal
+      :isOpen="isBulkFormOpen"
+      :loading="isSubmitting"
+      :examId="exam?.id"
+      :existingAssignments="assignments"
+      @close="isBulkFormOpen = false"
+      @submit="handleBulkFormSubmit"
     />
 
     <BaseModal 

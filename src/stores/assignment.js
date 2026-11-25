@@ -76,6 +76,21 @@ export const useAssignmentStore = defineStore('assignment', {
         this.loading = false
       }
     },
+    async createBulkAssignments(payload) {
+      this.loading = true
+      try {
+        const { data } = await api.post(`/exams/${payload.examId}/assignments/bulk`, payload)
+        if (data.data?.created?.length) {
+          this.assignments.unshift(...data.data.created)
+        }
+        return data
+      } catch (error) {
+        console.error('Failed to bulk create assignments:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
     async updateAssignment(id, payload) {
       this.loading = true
       try {
